@@ -82,6 +82,47 @@ after a write can still show the old state. `RemoveScene` followed by
 `GetSceneList` in the same batch will often still list the scene. Re-query
 in a separate call after a short pause.
 
+`RemoveInput` is worse than stale: it returns success while a scene item
+still references the source, and the input stays in `GetInputList`
+indefinitely. Remove the scene items first with `RemoveSceneItem`, which
+drops the last reference and takes the input with it. Always verify a
+removal with a fresh `GetInputList` rather than trusting the `ok`.
+
+## A source renders nothing and the screenshot looks white
+
+Screenshots are RGBA. A source that renders nothing produces a fully
+transparent image, which most viewers and terminals show as white. Before
+concluding that a web page is blank or an image is white, check the alpha
+channel. `(0, 0, 0, 0)` everywhere means the source drew nothing at all,
+which is a different problem from a source that drew something white.
+
+## Browser sources render nothing
+
+If a `browser_source` output is fully transparent regardless of URL,
+including OBS's own `https://obsproject.com/browser-source` default, the
+problem is CEF, not the API. Diagnose from outside OBS:
+
+```sh
+ps aux | grep "OBS Helper" | grep -oE '--type=[a-z-]+' | sort | uniq -c
+```
+
+A working browser source has both a `--type=gpu-process` and a
+`--type=renderer` helper. If only the GPU process is present, the renderer
+never spawned and no page is being loaded. The OBS log will still report
+`[obs-browser]: Version ...` and a CEF version, because the plugin loaded
+fine; plugin load is not evidence the renderer works.
+
+Things that will not fix it, so do not waste turns on them: reloading with
+`PressInputPropertiesButton refreshnocache`, toggling `sceneItemEnabled`,
+cycling `shutdown` / `restart_when_active`, changing the URL, or waiting
+longer. Hardware acceleration lives in OBS global config, not profile
+config, so `SetProfileParameter` cannot reach it and the change needs an
+OBS restart anyway.
+
+Report it to the user as a broken OBS install rather than continuing to
+tune the source. Seen on OBS 32.1.2 / obs-browser 2.26.8 / CEF 127 /
+macOS 26.5.
+
 ## macOS camera problems
 
 - OBS needs camera permission: System Settings > Privacy & Security >
