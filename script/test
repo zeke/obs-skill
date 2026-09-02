@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Validate the skill layout and smoke test the client.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+echo "==> node --check scripts/obs.mjs"
+node --check scripts/obs.mjs
+
+echo "==> obs.mjs --help"
+node scripts/obs.mjs --help >/dev/null
+
+echo "==> skills-ref validate"
+npx -y skills-ref validate .
+
+if node scripts/obs.mjs GetVersion >/dev/null 2>&1; then
+  echo "==> live OBS reachable"
+  node scripts/obs.mjs GetVersion | head -1 >/dev/null
+else
+  echo "==> no live OBS reachable, skipping connection test"
+fi
+
+echo "OK"
