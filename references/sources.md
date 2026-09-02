@@ -43,6 +43,60 @@ node <skill-directory>/scripts/obs.mjs SetInputSettings \
 property" when the key is wrong, which is a cheap way to probe. The first
 item in the returned list is usually an empty placeholder; skip it.
 
+Check `itemEnabled` before picking a device. A device with
+`itemEnabled: false` is registered with the OS but not currently
+connectable, and setting it produces a source that creates cleanly, accepts
+filters, and renders nothing. This is the normal state for an iPhone
+Continuity Camera that is asleep or locked:
+
+```json
+{"itemEnabled": false, "itemName": "Ezekiel's iPhone Camera", "itemValue": "0F57740D-..."}
+```
+
+Run this list first and tell the user to wake the device, rather than
+creating the input and debugging a black frame afterwards. The only other
+signal is in the OBS log (`Unable to initialize device with unique ID`) and
+a `sourceWidth` of `0`, which is indistinguishable from a camera that is
+simply still warming up.
+
+An unavailable device can also report an empty `itemName` while keeping its
+`itemValue`, so match on `itemValue` when re-checking a device you already
+know the UID for. Do not assume the human-readable name will be there.
+
+### iPhone UIDs are not stable, so never trust a saved one
+
+An iPhone appears under different UIDs depending on how it is connected,
+and only one of them is live at a time. Observed within a few minutes on
+one phone:
+
+| UID | Name | State |
+| --- | ---- | ----- |
+| `0F57740D-...-7E6500000001` | `Ezekiel's iPhone Camera` | listed, `itemEnabled: false`, then vanished |
+| `4B186C00-...-2ABB00000001` | `iPhone Camera` | absent, then live |
+
+The name is not stable either; the same phone was `Ezekiel's iPhone Camera`
+and later `iPhone Camera`.
+
+This is why saved iPhone sources break permanently. OBS stores whatever UID
+was current when the source was made, and on the next connection that UID
+no longer resolves. The symptom is `Unable to initialize device with unique
+ID` in the OBS log at startup, one line per stale source. A collection that
+has been used with an iPhone for a while accumulates several of these.
+
+So do not hardcode or reuse an iPhone UID, including one you read minutes
+earlier in the same session. Resolve it fresh from
+`GetInputPropertiesListPropertyItems`, filtered to `itemEnabled: true`, and
+match on the name. To repair an existing black iPhone source, re-resolve
+the UID and `SetInputSettings` on it rather than recreating the input; the
+filters and transform are worth keeping.
+
+Note that `iPhone Desk View Camera` and a bare `iPhone` entry also appear.
+The rear/front camera feed is the one named `iPhone Camera`.
+
+A device query does not need a throwaway input if the scene collection
+already has an input of the same kind. Query the existing one; the list is
+a property of the kind, not of the particular input.
+
 To use a specific resolution or frame rate instead of a preset, set
 `use_preset: false`, then read the `resolution` and `frame_rate` property
 lists the same way.

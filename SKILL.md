@@ -81,6 +81,10 @@ source in isolation. Use an absolute `imageFilePath`. `imageWidth` and
   `0xFF0000FF` = `4278190335`. Filter colors like `key_color` drop the
   alpha byte and use `0xBBGGRR`.
 - File paths in `inputSettings` must be absolute. `~` is not expanded.
+- Before adding a camera, run `GetInputPropertiesListPropertyItems` and
+  check `itemEnabled` on the device you plan to use. A device listed with
+  `itemEnabled: false` creates a source that looks fine and renders
+  nothing.
 - `sourceWidth`, `sourceHeight`, `width`, and `height` in a scene item
   transform are `0` until the source has rendered a frame. Cameras, media,
   and browser sources report `0` until the scene is live or has warmed up.
@@ -90,6 +94,15 @@ source in isolation. Use an absolute `imageFilePath`. `imageWidth` and
 - Prefer `boundsType: "OBS_BOUNDS_SCALE_INNER"` with `boundsWidth` and
   `boundsHeight` over `scaleX`/`scaleY` when fitting a source to a target
   rectangle. It works without knowing the source's native resolution.
+  Bounds do not show up in the transform response: `scaleX` stays `1` and
+  `width` stays at the native size even when the source renders
+  full-canvas. Verify with a screenshot, not by reading the fields back.
+- If a source renders nothing while every piece of state looks correct,
+  ask the user to restart OBS early rather than late. OBS subsystems,
+  notably the browser source's CEF layer, can wedge for the life of the
+  process while reporting themselves healthy through every API and log.
+  Nothing over the WebSocket recovers that. One restart beats twenty
+  diagnostic calls.
 
 ## Reference files
 
