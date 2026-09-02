@@ -18,7 +18,9 @@ home: <https://github.com/zeke/obs-skill>.
   under 500 lines. Details belong in `references/`.
 - `scripts/obs.mjs` — the obs-websocket v5 client. Must stay
   dependency-free: Node's built-in `WebSocket` (Node 22+) and `node:crypto`
-  only. Do not add a `package.json` or npm dependencies.
+  only. Do not add a `package.json` or npm dependencies. It must also keep
+  working when invoked through a symlink, since that is how skills are
+  normally installed; `script/test` covers this.
 - `references/` — loaded on demand.
   - `requests.md` — request types grouped by task
   - `sources.md` — input kinds and `inputSettings` keys
