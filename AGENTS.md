@@ -21,6 +21,12 @@ home: <https://github.com/zeke/obs-skill>.
   only. Do not add a `package.json` or npm dependencies. It must also keep
   working when invoked through a symlink, since that is how skills are
   normally installed; `script/test` covers this.
+- `scripts/notes.mjs` — append-only local notes store. Same
+  dependency-free and symlink-safe constraints. It must never write inside
+  the skill directory: installing or updating a skill replaces that folder,
+  so notes there would be lost. Default path is
+  `$XDG_STATE_HOME/obs-skill/notes.md` or `~/.local/state/obs-skill/notes.md`,
+  overridable with `OBS_SKILL_NOTES`.
 - `references/` — loaded on demand.
   - `requests.md` — request types grouped by task
   - `sources.md` — input kinds and `inputSettings` keys
@@ -76,6 +82,19 @@ node scripts/obs.mjs RemoveInput '{"inputName":"..."}'   # per input created
 
 `RemoveScene` does not remove the inputs it contained. Remove them
 explicitly or they linger in the scene collection.
+
+## Notes versus references
+
+Keep the distinction sharp when editing:
+
+- `references/` is general OBS knowledge, shipped to everyone, version
+  controlled here.
+- The notes file is one machine's experience, written at runtime, never
+  committed here.
+
+When a note generalizes it should be promoted into `references/` via a pull
+request. Do not add machine-specific values to `references/`, and do not
+teach the skill to write general documentation into notes.
 
 ## Validation
 
