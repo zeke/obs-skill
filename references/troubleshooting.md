@@ -106,22 +106,44 @@ problem is CEF, not the API. Diagnose from outside OBS:
 ps aux | grep "OBS Helper" | grep -oE '--type=[a-z-]+' | sort | uniq -c
 ```
 
-A working browser source has both a `--type=gpu-process` and a
-`--type=renderer` helper. If only the GPU process is present, the renderer
-never spawned and no page is being loaded. The OBS log will still report
-`[obs-browser]: Version ...` and a CEF version, because the plugin loaded
-fine; plugin load is not evidence the renderer works.
+A working browser source has a `--type=gpu-process`, at least one
+`--type=renderer`, and some `--type=utility` helpers. Only the GPU process
+means CEF initialized but never created a browser, so no page is being
+loaded.
 
-Things that will not fix it, so do not waste turns on them: reloading with
-`PressInputPropertiesButton refreshnocache`, toggling `sceneItemEnabled`,
-cycling `shutdown` / `restart_when_active`, changing the URL, or waiting
-longer. Hardware acceleration lives in OBS global config, not profile
-config, so `SetProfileParameter` cannot reach it and the change needs an
-OBS restart anyway.
+The fix is to quit and reopen OBS. CEF can wedge in this state for the
+life of the process, and nothing reachable over the WebSocket API brings it
+back. Ask the user to restart OBS before investigating any further; it
+takes them ten seconds and it resolves this.
 
-Report it to the user as a broken OBS install rather than continuing to
-tune the source. Seen on OBS 32.1.2 / obs-browser 2.26.8 / CEF 127 /
-macOS 26.5.
+Do not waste turns on the plausible-looking remedies. None of these help:
+reloading with `PressInputPropertiesButton refreshnocache`, toggling
+`sceneItemEnabled`, cycling `shutdown` / `restart_when_active`, changing
+the URL, or waiting longer. Hardware acceleration lives in OBS global
+config, not profile config, so `SetProfileParameter` cannot reach it, and
+changing it needs a restart anyway.
+
+Equally important, do not conclude the install is broken. Every signal
+looks healthy in this state and will mislead you:
+
+- OBS's own log reports `[obs-browser]: Version ...` and a CEF version,
+  because the plugin loaded fine. Plugin load says nothing about whether
+  the renderer works.
+- There are no errors anywhere: not in the OBS log, not in
+  `~/Library/Logs/DiagnosticReports`, and not in `log show`. macOS never
+  denies or kills the renderer, because OBS never asks for one.
+- The CEF profile dir is writable and its `SingletonLock` points at the
+  live OBS pid, so it is not a stale lock.
+- `GetSourceActive` returns `videoActive: true, videoShowing: true`.
+
+One signal that does correlate: the `Cache` subdirectory of the CEF profile
+(`plugin_config/obs-browser/Cache`) has no recent writes, because no page
+has loaded.
+
+Confirmed on OBS 32.1.2 / obs-browser 2.26.8 / CEF 127 / macOS 26.5, after
+the OBS process had been running about seven hours. Restarting OBS fixed it
+immediately, and the same source then rendered correctly with no other
+change.
 
 ## macOS camera problems
 
