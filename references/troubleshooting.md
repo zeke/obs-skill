@@ -158,6 +158,14 @@ change.
   directly into a Mac port rather than a hub, and set Auto-Lock to Never
   while streaming. When it goes stale, re-set the device on the existing
   input rather than recreating the input.
+- More often it does not drop out of the list, it stays listed with
+  `itemEnabled: false`. Check that field in
+  `GetInputPropertiesListPropertyItems` before building anything on top of
+  the device. See `sources.md`.
+- If several capture inputs log `Unable to initialize device` at once, the
+  problem is the device or the phone, not the input you just made. Check
+  whether the collection's other inputs on the same camera are failing too
+  before touching your own settings.
 - `av_capture_input_v2` and `macos-avcapture` use different device keys
   (`uid` versus `device`), so a device value copied between them will not
   work.

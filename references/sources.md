@@ -43,6 +43,30 @@ node <skill-directory>/scripts/obs.mjs SetInputSettings \
 property" when the key is wrong, which is a cheap way to probe. The first
 item in the returned list is usually an empty placeholder; skip it.
 
+Check `itemEnabled` before picking a device. A device with
+`itemEnabled: false` is registered with the OS but not currently
+connectable, and setting it produces a source that creates cleanly, accepts
+filters, and renders nothing. This is the normal state for an iPhone
+Continuity Camera that is asleep or locked:
+
+```json
+{"itemEnabled": false, "itemName": "Ezekiel's iPhone Camera", "itemValue": "0F57740D-..."}
+```
+
+Run this list first and tell the user to wake the device, rather than
+creating the input and debugging a black frame afterwards. The only other
+signal is in the OBS log (`Unable to initialize device with unique ID`) and
+a `sourceWidth` of `0`, which is indistinguishable from a camera that is
+simply still warming up.
+
+An unavailable device can also report an empty `itemName` while keeping its
+`itemValue`, so match on `itemValue` when re-checking a device you already
+know the UID for. Do not assume the human-readable name will be there.
+
+A device query does not need a throwaway input if the scene collection
+already has an input of the same kind. Query the existing one; the list is
+a property of the kind, not of the particular input.
+
 To use a specific resolution or frame rate instead of a preset, set
 `use_preset: false`, then read the `resolution` and `frame_rate` property
 lists the same way.

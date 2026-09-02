@@ -81,6 +81,10 @@ source in isolation. Use an absolute `imageFilePath`. `imageWidth` and
   `0xFF0000FF` = `4278190335`. Filter colors like `key_color` drop the
   alpha byte and use `0xBBGGRR`.
 - File paths in `inputSettings` must be absolute. `~` is not expanded.
+- Before adding a camera, run `GetInputPropertiesListPropertyItems` and
+  check `itemEnabled` on the device you plan to use. A device listed with
+  `itemEnabled: false` creates a source that looks fine and renders
+  nothing.
 - `sourceWidth`, `sourceHeight`, `width`, and `height` in a scene item
   transform are `0` until the source has rendered a frame. Cameras, media,
   and browser sources report `0` until the scene is live or has warmed up.
