@@ -15,6 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_URL = "ws://127.0.0.1:4455";
 
@@ -192,7 +193,21 @@ async function main() {
   if (failed.length) process.exitCode = 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Resolve symlinks on both sides before comparing. Skills are commonly
+// installed as a symlink (e.g. ~/.agents/skills -> a dotfiles repo), which
+// makes `process.argv[1]` the symlinked path while `import.meta.url` is
+// already fully resolved. A naive comparison silently does nothing.
+function isMainModule() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return fs.realpathSync(fileURLToPath(import.meta.url)) === fs.realpathSync(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   main().catch((err) => {
     console.error(err.message);
     process.exitCode = 1;
