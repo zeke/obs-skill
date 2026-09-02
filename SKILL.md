@@ -49,7 +49,17 @@ user's own machine it usually just works.
 
 ## Working loop
 
-1. Run `--state` first. Never guess scene names, input names, or scene item
+0. Read the local notes once per session, before anything else:
+
+```sh
+node <skill-directory>/scripts/notes.mjs read
+```
+
+   These are findings from earlier sessions on this specific machine: setting
+   values that worked, ones that did not, device quirks. Cheap to read and
+   often saves the exact loop that produced them. See "Local notes" below.
+
+1. Run `--state` next. Never guess scene names, input names, or scene item
    IDs; they are all required verbatim and IDs are per-scene integers.
 2. Make the change with one `--batch` call.
 3. Verify visually with a screenshot, then read the image:
@@ -104,6 +114,57 @@ source in isolation. Use an absolute `imageFilePath`. `imageWidth` and
   Nothing over the WebSocket recovers that. One restart beats twenty
   diagnostic calls.
 
+## Local notes
+
+The reference files describe OBS in general. The notes file describes *this*
+OBS: its version, its cameras, the values that looked right on this user's
+hardware. Read it at the start of a session and add to it at the end.
+
+```sh
+node <skill-directory>/scripts/notes.mjs read
+node <skill-directory>/scripts/notes.mjs path
+
+node <skill-directory>/scripts/notes.mjs add "<short title>" --body - --tags filters,camera <<'EOF'
+What you were trying to do, the exact payload that worked, what you tried
+first that did not, and how you verified it.
+EOF
+```
+
+Each entry is stamped with the date and the live OBS version and platform,
+so a later session can tell whether a note still applies. The file lives
+outside the skill directory (`~/.local/state/obs-skill/notes.md` by default,
+overridable with `OBS_SKILL_NOTES`) because updating the skill replaces the
+skill folder wholesale.
+
+Write a note when:
+
+- A setting value produced a visibly good or bad result. Record the number.
+- Something in the reference files turned out to be wrong or incomplete here.
+- A device, plugin, or filter kind behaved differently than documented.
+- You burned several turns on something. Write down what the shortcut was.
+
+Do not write a note for: routine successful operations, anything already in
+the reference files, or speculation you did not verify.
+
+When a new finding contradicts an old note, supersede it rather than
+starting a parallel entry:
+
+```sh
+node <skill-directory>/scripts/notes.mjs add "<new title>" --body - --supersedes "<fragment of the old title>"
+```
+
+The old entry stays for the history and gains a `Superseded by:` line.
+Never delete an entry. If the file gets unwieldy, `read` will say so;
+consolidate duplicates into one entry rather than trimming information.
+
+Treat notes as evidence, not as truth. Live OBS outranks them. If a note
+conflicts with what `--state` or a screenshot shows, believe OBS and
+supersede the note in the same session.
+
+Notes are local and often machine-specific. When a finding would help
+anyone using OBS, not just this user, also offer to send it upstream as a
+pull request. See "Improving this skill".
+
 ## Reference files
 
 Load these as needed:
@@ -149,7 +210,17 @@ files do not cover: a filter setting that behaves differently than its
 name suggests, a device that needs a specific property name, a value range
 that works well in practice.
 
-When that happens, offer to open a pull request against
+There are two places for such a finding, and most belong in both:
+
+- The local notes, for anything about this machine. Always.
+- A pull request upstream, for anything that generalizes.
+
+The notes file is a good source of upstream PRs. A note that has survived
+several sessions without being superseded is worth promoting; one that was
+superseded twice is probably specific to this setup. `notes.mjs read` is a
+reasonable thing to skim when the user asks what is worth contributing.
+
+When a finding generalizes, offer to open a pull request against
 `zeke/obs-skill` with what you learned. Keep the contribution concrete:
 the OBS version and platform, the exact request payload that worked, and
 what you had tried that did not. Corrections to wrong information are more

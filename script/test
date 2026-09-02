@@ -4,8 +4,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "==> node --check scripts/obs.mjs"
-node --check scripts/obs.mjs
+echo "==> node --check"
+for f in scripts/*.mjs; do node --check "$f"; done
 
 echo "==> obs.mjs --help"
 node scripts/obs.mjs --help >/dev/null
@@ -21,6 +21,23 @@ if [ -z "$(node "$link_dir/scripts/obs.mjs" --help)" ]; then
   echo "FAIL: produced no output when invoked through a symlink" >&2
   exit 1
 fi
+
+echo "==> notes.mjs round trip"
+notes_dir=$(mktemp -d)
+trap 'rm -rf "$link_dir" "$notes_dir"' EXIT
+export OBS_SKILL_NOTES="$notes_dir/notes.md"
+[ "$(node scripts/notes.mjs path)" = "$OBS_SKILL_NOTES" ] || { echo "FAIL: notes path not honoured" >&2; exit 1; }
+printf 'body text' | node scripts/notes.mjs add "test entry" --body - --tags test >/dev/null
+node scripts/notes.mjs read | grep -q "test entry" || { echo "FAIL: note not read back" >&2; exit 1; }
+printf 'newer body' | node scripts/notes.mjs add "replacement" --body - --supersedes "test entry" >/dev/null
+node scripts/notes.mjs read | grep -q "Superseded by: replacement" || { echo "FAIL: supersede marker missing" >&2; exit 1; }
+node scripts/notes.mjs add "no body" --body "" >/dev/null 2>&1 && { echo "FAIL: accepted an empty body" >&2; exit 1; }
+unset OBS_SKILL_NOTES
+
+echo "==> notes.mjs writes outside the skill directory"
+case "$(OBS_SKILL_NOTES= node scripts/notes.mjs path)" in
+  "$PWD"/*) echo "FAIL: default notes path is inside the skill directory" >&2; exit 1 ;;
+esac
 
 echo "==> skills-ref validate"
 npx -y skills-ref validate .
