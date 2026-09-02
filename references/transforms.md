@@ -27,8 +27,15 @@ Read the current one first with `GetSceneItemTransform`, or take it from
 ```
 
 Read-only fields in the response: `sourceWidth`, `sourceHeight` (the
-source's native size) and `width`, `height` (its size on canvas after
-scale and bounds). All four are `0` until the source has rendered a frame.
+source's native size) and `width`, `height`. All four are `0` until the
+source has rendered a frame.
+
+`width`, `height`, `scaleX`, and `scaleY` do not account for bounds. A
+1920x1080 source with `OBS_BOUNDS_SCALE_INNER` bounds of 5120x2880 renders
+full-canvas but still reports `scaleX: 1` and `width: 1920`. Bounds are
+applied at render time and are invisible in the transform response. Do not
+read those fields back to check whether bounds took effect; take a
+screenshot instead.
 
 ## Canvas coordinates
 
